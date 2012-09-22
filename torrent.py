@@ -5,15 +5,37 @@
 from bencode_decoder import beparse
 from pprint import pprint
 
-meta_attributes = {'announce' : 'announce',
-                   'announce_list' : 'announce-list',
+meta_attributes = {
+                  'announce' : 'announce',
+                  'announce_list' : 'announce-list',
                   'comment' : 'comment',
                   'created_by' : 'created by',
                   'creation_date' : 'creation date',
-                  'encoding' : 'encoding'}
+                  'encoding' : 'encoding'
+                  }
 
-class Torrent:
+info_attributes = {
+                  'pieces' : 'pieces',
+                  'piece_length' : 'piece length',
+                  'private' : 'private'
+                  }
 
+file_attributes = {
+                  'name' : 'name',
+                  'length' : 'length',
+                  'md5sum' : 'md5sum',
+                  'path' : 'path'
+                  }
+
+class TorrentFile:
+  def __init__(self,meta_file):
+    self.meta = meta_file
+
+  def __getattr__(self,name):
+    pass
+
+
+class TorrentMeta:
   def __init__(self,filename):
     self.file_dict = beparse(open(filename).read())
 
@@ -28,7 +50,6 @@ class Torrent:
   def __getattr__(self, name):
     if not self.file_dict:
       raise KeyError
-
     if name in meta_attributes:
       return self.file_dict[meta_attributes[name]]
 
