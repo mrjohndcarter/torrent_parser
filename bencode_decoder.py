@@ -1,6 +1,11 @@
-# file: bdecode.py
-# author: jcarter
-# description: basic bencode decoder
+'''
+file: bencode_decoder.py
+author: jcarter
+description: 
+  - basic bencode parser
+notes:
+  - error reporting conditions can be improved
+'''
 
 import string
 import re
@@ -71,7 +76,6 @@ def beparse(stream):
         return temp_element;
         
       build_stack[-1].append(temp_element)
-
     matched = re.search(chunk_start_pattern,stream)
 
   # if we're here, there's something we could not parse  

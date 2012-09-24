@@ -1,11 +1,7 @@
 torrent_parser
 ==============
 
-coding exercise
-
-file: torrent.def
-author: jcarter
-desciption: class to parse a bit torrent file
+*Coding Exercise*
 
 Please use Python 2.7 to perform the following task:
 Write a re-usable library to parse BitTorrent files. The library should expose 
@@ -19,6 +15,5 @@ No third-party libraries should be used for this project, only the Python standa
 
 references
 --
-
 - http://wiki.theory.org/BitTorrentSpecification
-- 
+- http://www.bittorrent.org/beps/bep_0003.html
