@@ -11,6 +11,7 @@ notes:
   - doesn't parse pieces/piece hashes.
 '''
 
+from datetime import datetime
 from bencode_decoder import beparse
 
 # maps between attribute names and dictionary keys parsed from the file
@@ -100,7 +101,7 @@ class TorrentMeta:
     if name == 'announce_list':
       return TorrentMeta.__flatten_list__(self.torrent_dict.get('announce-list',[]))
     elif name == 'creation_date':
-      return int(self.torrent_dict.get('creation date',0))
+      return datetime.fromtimestamp(int(self.torrent_dict.get('creation date',0)))
     elif name in meta_attributes:
       return self.torrent_dict.get(meta_attributes[name],'')
     else:
@@ -135,7 +136,7 @@ class TorrentMeta:
       TorrentMeta.__separator__(),
       'Announce List: ',
       TorrentMeta.__separator__(2),
-      TorrentMeta.__separator__(2).join(TorrentMeta.__flatten_list__(self.__getattr__('announce_list'))),
+      TorrentMeta.__separator__(2).join(self.__getattr__('announce_list')),
       TorrentMeta.__separator__(),
       'Comment: ',
       self.__getattr__('comment'),
