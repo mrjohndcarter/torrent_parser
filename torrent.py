@@ -1,14 +1,19 @@
-# file: torrent.def
-# author: jcarter
-# desciption: class to parse a bit torrent file
-
-# notes:
-# - assumes single file/multifile is 'well formed'
-#   i.e. -- a single file is not represented as a multifile representation of len 1.
+'''
+file: torrent.py
+author: jcarter
+description: 
+  - parses a bit torrent file
+  - provides access to all attributes of the torrent meta, and contained files.
+  - provides iterator over the contained files
+notes:
+  - assumes single file/multifile is 'well formed'  i.e. -- a single file is not 
+  represented as a multifile representation of len 1.
+  - doesn't parse pieces/piece hashes.
+'''
 
 from bencode_decoder import beparse
-from pprint import pprint
-from itertools import chain
+
+# maps between attribute names and dictionary keys parsed from the file
 
 meta_attributes = {
                   'announce' : 'announce',
@@ -18,13 +23,6 @@ meta_attributes = {
                   'creation_date' : 'creation date',
                   'encoding' : 'encoding'
                   }
-
-info_attributes = {
-                  'pieces' : 'pieces',
-                  'piece_length' : 'piece length',
-                  'private' : 'private'
-                  }
-
 file_attributes = {
                   'name' : 'name',
                   'length' : 'length',
@@ -32,16 +30,19 @@ file_attributes = {
                   'path' : 'path'
                   }
 
+# a file contained in a torrent
+
 class TorrentFile:
   def __init__(self,meta_file,index):
-    self.meta = meta_file
-    self.index = index
-    #print self.meta.torrent_dict['info']['files'][index]
+    self.meta = meta_file # the torrent meta file that contains this file
+    self.index = index # the index of this file within torrent meta file
 
+  # for readabilities sake
   @classmethod
   def __join_path__(klass,l):
     return '/'.join(l)
 
+  # builds a full path to the filename with available components
   def filename(self):
     if self.meta.single_file_mode:
       return self.meta.torrent_dict['info']['name']
@@ -50,11 +51,14 @@ class TorrentFile:
     else:
       return '/'.join([self.meta.torrent_dict.get('name',''),TorrentFile.__join_path__(self.__getattr__('path'))])
 
+  # attribute access
   def __getattr__(self,name):
     if name not in file_attributes:
       raise KeyError
     if self.meta.single_file_mode:
       return self.meta.torrent_dict['info'].get(name,'')
+    elif name == 'length':
+      return int(self.meta.torrent_dict['info']['files'][self.index].get('length',0))
     else:
       return self.meta.torrent_dict['info']['files'][self.index].get(name,'')
 
@@ -70,6 +74,8 @@ class TorrentFile:
       'length: ',
       str(self.__getattr__('length'))])
 
+# a torrent meta file
+
 class TorrentMeta:
   def __init__(self,filename):
     self.torrent_dict = beparse(open(filename).read())
@@ -78,6 +84,7 @@ class TorrentMeta:
     else:
       self.single_file_mode = True
 
+  # number of files described in the torrent file
   def __len__(self):
     if not self.torrent_dict:
       return 0;
@@ -86,16 +93,28 @@ class TorrentMeta:
     else:
       return len(self.torrent_dict['info']['files'])
 
+  # attribute access
   def __getattr__(self, name):
     if not self.torrent_dict:
       raise KeyError
-    if name in meta_attributes:
-      return self.torrent_dict[meta_attributes[name]]
+    if name == 'announce_list':
+      return TorrentMeta.__flatten_list__(self.torrent_dict.get('announce-list',[]))
+    elif name == 'creation_date':
+      return int(self.torrent_dict.get('creation date',0))
+    elif name in meta_attributes:
+      return self.torrent_dict.get(meta_attributes[name],'')
+    else:
+      raise KeyError
 
+  # access to files in torrent
   def __getitem__(self, key):
     if not self.torrent_dict or (key < 0) or (key >= self.__len__()):
       raise KeyError
     return TorrentFile(self,key)
+
+  # returns an iterator for this meta file
+  def __iter__(self):
+    return TorrentIterator(self.__len__(),self)
 
   # utility method -- parsed as a list of lists, each containing one string
   # this turns that into a list of strings
@@ -130,36 +149,17 @@ class TorrentMeta:
       'Created By: ',
       self.__getattr__('created_by')])
 
-def main():
+# torrent meta iterator (iterates over files)
 
-  t = TorrentMeta('./testfiles/mint.torrent')
-  print t
-  # print len(t)
-  # print t.announce
-  # print t.announce_list
-  # print t.comment
-  # print t.encoding
-  # print t.creation_date
-  # print t.created_by
-  # print t[0]
+class TorrentIterator:
+  def __init__(self,count,meta_file):
+    self.count = count
+    self.current = 0
+    self.meta_file = meta_file
 
-  print '-------'
-
-  # t = TorrentMeta('./testfiles/thriller.torrent')
-  # print t
-  # print len(t)
-  # print t.announce
-  # print t.announce_list
-  # print t.comment
-  # print t.encoding
-  # print t.creation_date
-  # print t.created_by
-
-  # print '-------'
-
-  for i in range(0,len(t)):
-    print t[i]
-
-if __name__ == '__main__':
-    main()
-    #unittest.main()
+  def next(self):
+    if self.current >= self.count:
+      raise StopIteration
+    else:
+      self.current += 1
+      return self.meta_file[self.current-1]
